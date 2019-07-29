@@ -22,13 +22,14 @@ class BaseRPCService(BaseMQTTRPC):
     def reply(self, request_topic, msg):
         raise NotImplementedError
 
-    def subscribes_rpc_topics(self):
-        self.subscribe(self.REQUEST_TOPIC_TMP.format(versioin=self.VERSION,
-                                                   service=self._client_id,
-                                                   method="+",
-                                                   topic="+",
-                                                     pid="+"))
+    def subscribe_rpc_topics(self):
+        topic = self.REQUEST_TOPIC_TMP.format(version=self.VERSION,
+                                                service=self.service_name,
+                                                method="+",
+                                                    pid="+")
+        self.subscribe(topic)
 
+        print("subs: %s"% topic)
 
 
 
@@ -43,5 +44,6 @@ class RPCService(BaseRPCService):
     def handle_request_msg(self, msg):
         topic = msg.topic
         _,_,version,service,method,pid = topic.split("/")
+        print("reuest: %s" % msg.payload)
         self.reply(topic, {"code":0,
                            "msg":"ok"})

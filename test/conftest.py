@@ -2,8 +2,10 @@ import time
 import pytest
 from unittest.mock import MagicMock
 import unittest
+import paho.mqtt.client as mqtt
 
 from jmqttrpc.client import MQTTClient, BaseMQTTRPC, MQTTRPC
+from jmqttrpc.service import RPCService
 from .config import MQTT_BORKER_URL, MQTT_BORKER_PORT
 from .utils import get_random_id
 
@@ -53,9 +55,18 @@ def unlive_client():
 
 
 @pytest.yield_fixture()
-def mqttrpc():
+def mqttrpc(request):
     client_id = get_random_id()
     client = MQTTRPC(client_id)
+    if hasattr(request, "param"):
+        need_mocks = request.param
+        print("need_mocks: %s" % need_mocks)
+        if need_mocks:
+            for mock_method in need_mocks:
+                if hasattr(client, mock_method):
+                    setattr(client, mock_method, MagicMock())
+
+
     client.connect(MQTT_BORKER_URL, MQTT_BORKER_PORT)
     print("rpc connect")
     client.loop_start()
@@ -63,6 +74,30 @@ def mqttrpc():
     yield client
     client.loop_stop()
     print("rpc stop")
+
+
+@pytest.yield_fixture()
+def rpcservice(request):
+    client_id = get_random_id()
+    config = {"service_name": "test",
+              "client_id": get_random_id()}
+    client = RPCService(config, None)
+    if hasattr(request, "param"):
+        need_mocks = request.param
+        print("need_mocks: %s" % need_mocks)
+        if need_mocks:
+            for mock_method in need_mocks:
+                if hasattr(client, mock_method):
+                    setattr(client, mock_method, MagicMock())
+
+
+    client.connect(MQTT_BORKER_URL, MQTT_BORKER_PORT)
+    print("rpcservice connect")
+    client.loop_start()
+    time.sleep(1)
+    yield client
+    client.loop_stop()
+    print("rpcservice stop")
 
 
 

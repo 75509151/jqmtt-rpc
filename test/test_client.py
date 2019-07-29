@@ -33,9 +33,9 @@ class TestMQTTClient:
 
 class TestBaseMQTTClient:
 
-    @pytest.mark.parametrize("basemqttrpc", [["subscribes_rpc_topics", ]], indirect=True)
+    @pytest.mark.parametrize("basemqttrpc", [["subscribe_rpc_topics", ]], indirect=True)
     def test_on_mqtt_connect(self, basemqttrpc):
-        assert basemqttrpc.subscribes_rpc_topics.call_count == 1
+        assert basemqttrpc.subscribe_rpc_topics.call_count == 1
 
 
     @pytest.mark.parametrize("basemqttrpc", [["handle_unkwon_msg", ]], indirect=True)
@@ -78,5 +78,48 @@ class TestBaseMQTTClient:
         mqttrpc.publish(topic, "test")
         time.sleep(1)
         assert basemqttrpc.handle_request_msg.call_count == 1
+
+
+class TestMQTTRPC:
+
+    @pytest.mark.parametrize("mqttrpc", [["handle_reply_msg", ]], indirect=True)
+    def test_subscribe_rpc_topics(self, mqttrpc, basemqttrpc):
+        mqttrpc.subscribe_rpc_topics()
+        time.sleep(1)
+
+        topic = mqttrpc.REPLY_TOPIC_TMP.format(version=basemqttrpc.VERSION,
+                                               service=mqttrpc._client_id,
+                                               method="test",
+                                               pid=get_random_id()
+                                               )
+        payload = "llll"
+        basemqttrpc.publish(topic, payload)
+        time.sleep(1)
+        assert mqttrpc.handle_reply_msg.call_count == 1
+
+    @pytest.mark.parametrize("mqttrpc", [["handle_reply_msg", ]], indirect=True)
+    def test_handle_reply_msg(self, mqttrpc, basemqttrpc):
+        time.sleep(1)
+        topic = mqttrpc.REPLY_TOPIC_TMP.format(version=basemqttrpc.VERSION,
+                                               service=mqttrpc._client_id,
+                                               method="test",
+                                               pid=get_random_id()
+                                               )
+        payload = "llll"
+        basemqttrpc.publish(topic, payload)
+        time.sleep(1)
+        assert mqttrpc.handle_reply_msg.call_count == 1
+
+
+
+    @pytest.mark.parametrize("mqttrpc", [["handle_reply_msg", ]], indirect=True)
+    def test_call(self, mqttrpc, rpcservice):
+        time.sleep(1)
+        ret = mqttrpc.call(rpcservice.service_name,"test",{"l":1,
+                                                           "p":2})
+        print(ret)
+        assert mqttrpc.handle_reply_msg.call_count == 1
+
+
 
 

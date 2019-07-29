@@ -92,9 +92,9 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
             self.reset_subscribes()
 
     def on_mqtt_connect(self, client, userdata, flags, rc):
-        self.subscribes_rpc_topics()
+        self.subscribe_rpc_topics()
 
-    def subscribes_rpc_topics(self):
+    def subscribe_rpc_topics(self):
         raise NotImplementedError
 
     def _get_pid(self):
@@ -137,8 +137,8 @@ class MQTTRPC(BaseMQTTRPC, EventGetMixin):
     def __init__(self, client_id, clean_session=True, userdata=None, protocol=mqtt.MQTTv311):
         super(MQTTRPC, self).__init__(client_id, clean_session, userdata, protocol)
 
-    def subscribes_rpc_topics(self):
-        self.subscribe(self.REPLY_TOPIC_TMP.format(versioin=self.VERSION,
+    def subscribe_rpc_topics(self):
+        self.subscribe(self.REPLY_TOPIC_TMP.format(version=self.VERSION,
                                                    service=self._client_id,
                                                    method="+",
                                                    topic="+",
