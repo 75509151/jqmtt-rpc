@@ -1,5 +1,4 @@
 import time
-import uuid
 import pytest
 from unittest.mock import MagicMock
 import unittest
@@ -118,6 +117,8 @@ class TestMQTTRPC:
         ret = mqttrpc.call(rpcservice.service_name,"test",{"l":1,
                                                            "p":2})
         print(ret)
+
+        time.sleep(3)
         assert mqttrpc.handle_reply_msg.call_count == 1
 
 

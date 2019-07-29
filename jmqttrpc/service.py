@@ -1,11 +1,15 @@
 import eventlet
 eventlet.monkey_patch()
 
+import json
+from logging import getLogger
 import paho.mqtt.client as mqtt
 
 from jmqttrpc.client import BaseMQTTRPC
 from jmqttrpc.constants import DEFAUT_MAX_WOKERS
 
+
+_log = getLogger(__name__)
 
 class BaseRPCService(BaseMQTTRPC):
 
@@ -29,7 +33,7 @@ class BaseRPCService(BaseMQTTRPC):
                                                     pid="+")
         self.subscribe(topic)
 
-        print("subs: %s"% topic)
+        _log.debug("subs: %s"% topic)
 
 
 
@@ -38,12 +42,17 @@ class BaseRPCService(BaseMQTTRPC):
 class RPCService(BaseRPCService):
 
     def reply(self, request_topic, msg):
+
         reply_topic = request_topic+"/reply"
+        print("reply: %s" % reply_topic)
         return self.publish(reply_topic, msg)
 
     def handle_request_msg(self, msg):
-        topic = msg.topic
-        _,_,version,service,method,pid = topic.split("/")
-        print("reuest: %s" % msg.payload)
-        self.reply(topic, {"code":0,
-                           "msg":"ok"})
+        try:
+            topic = msg.topic
+            _, _,_,version,service,method,pid = topic.split("/")
+            _log.info("reuest: %s" % msg.payload)
+            self.reply(topic, json.dumps({"code":0,
+                            "msg":"ok"}))
+        except Exception as e:
+            _log.error("handle_request err: %s" % str(e))

@@ -1,6 +1,7 @@
 
 import uuid
 import threading
+import traceback
 
 from logging import getLogger
 
@@ -98,7 +99,7 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
         raise NotImplementedError
 
     def _get_pid(self):
-        return uuid.uuid4()
+        return str(uuid.uuid4())
 
     def call(self, *args, **kw):
         raise NotImplementedError
@@ -107,15 +108,22 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
         raise NotImplementedError
 
     def on_mqtt_msg(self, client, userdata, msg):
-        print("on_mqtt_msg")
         topic = msg.topic
+        _log.info("msg topic: %s, payload:%s" % (topic, msg.payload))
+        try:
 
-        if mqtt.topic_matches_sub(self.REPLY_TOPIC_MODEL, topic):
-            self.handle_reply_msg(msg)
-        elif mqtt.topic_matches_sub(self.REQUEST_TOPIC_MODEL,topic):
-            self.handle_request_msg(msg)
-        else:
-            self.handle_unkwon_msg(msg)
+            if mqtt.topic_matches_sub(self.REPLY_TOPIC_MODEL, topic):
+                self.handle_reply_msg(msg)
+            elif mqtt.topic_matches_sub(self.REQUEST_TOPIC_MODEL,topic):
+                self.handle_request_msg(msg)
+            else:
+                _log.warning("handle_unkwon_msg")
+                print("unkown msg")
+                self.handle_unkwon_msg(msg)
+        except Exception as e:
+            _log.error("on_mqtt_msg error: %s" % str(traceback.format_exc()))
+            print("on_mqtt_msg error: %s" % str(traceback.format_exc()))
+            raise e
 
     def handle_unkwon_msg(self, msg):
         pass
@@ -138,15 +146,19 @@ class MQTTRPC(BaseMQTTRPC, EventGetMixin):
         super(MQTTRPC, self).__init__(client_id, clean_session, userdata, protocol)
 
     def subscribe_rpc_topics(self):
-        self.subscribe(self.REPLY_TOPIC_TMP.format(version=self.VERSION,
+
+        topic = self.REPLY_TOPIC_TMP.format(version=self.VERSION,
                                                    service=self._client_id,
                                                    method="+",
                                                    topic="+",
-                                                   pid="+"))
+                                                   pid="+")
+        self.subscribe(topic)
+        _log.info("subs reply:%s" % topic)
 
 
     def handle_reply_msg(self, msg):
-        _,_,version,service,method,pid = msg.topic.split("/")
+        print("reply msg")
+        _, _, _,version,service,method,pid, _ = msg.topic.split("/")
 
         reply_event = self._reply_events.pop(pid)
         if reply_event:
@@ -156,15 +168,16 @@ class MQTTRPC(BaseMQTTRPC, EventGetMixin):
 
 
 
-    def call(self, service, method, params, timeout=60):
+    def call(self, service, method, dict_params, timeout=60):
+        assert type(dict_params) == dict
         pid = self._get_pid()
         topic = self.REQUEST_TOPIC_TMP.format(version=self.VERSION,
                                               service=service,
                                               method=method,
                                               pid=pid)
         reply_event = self.get_reply_event(pid)
-        payload = self.protocol.create_request(method, params)
+        payload = self.protocol.create_request(method, dict_params)
         ret, mid = self.publish(topic, payload)
-        # TODO: to deal with error and empty
-        reply_body = reply_event.wait(timeout)
-        return reply_body
+        # # TODO: to deal with error and empty
+        # reply_body = reply_event.wait(timeout)
+        # return reply_body

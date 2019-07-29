@@ -1,6 +1,5 @@
 import time
 import json
-import uuid
 import pytest
 from unittest.mock import MagicMock
 import unittest
@@ -17,11 +16,15 @@ class TestRPCService:
     def test_reply(self):
         pass
 
+
+    @pytest.mark.parametrize("rpcservice", [["handle_request_msg", ]], indirect=True)
     def test_handle_request_msg(self, rpcservice, mqttrpc):
-        topic = mqttrpc.REQUEST_TOPIC_TMP.format(version=rpcservice.VERSION,
+        topic = mqttrpc.REQUEST_TOPIC_TMP.format(version=mqttrpc.VERSION,
                                                service=rpcservice.service_name,
                                                method="test",
                                                pid=get_random_id()
                                                )
         mqttrpc.publish(topic, json.dumps({"ll":1}))
+        time.sleep(1)
+        assert rpcservice.handle_request_msg.call_count == 1
 
