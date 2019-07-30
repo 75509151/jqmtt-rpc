@@ -8,6 +8,9 @@ import paho.mqtt.client as mqtt
 from jmqttrpc.client import MQTTClient, BaseMQTTRPC, MQTTRPC
 from jmqttrpc.service import RPCService
 from jmqttrpc.protocol import RPCProtocol
+from jmqttrpc.rpcproxy import RPCProxy
+from jmqttrpc.constants import *
+
 from .config import MQTT_BORKER_URL, MQTT_BORKER_PORT
 from .utils import get_random_id
 
@@ -81,20 +84,8 @@ def mqttrpc(request):
 
 
 class RPCService4Test(RPCService):
-    def handle_request_msg(self, msg):
-        try:
-            try:
-                request = RPCProtocol.parse_requset(msg)
-            except KeyError as e:
-                self.reply(msg.topic,
-                           RPCProtocol.create_reply(1,str(e)))
-            else:
-
-                self.reply(request.topic,
-                           RPCProtocol.create_reply(0,"ok", request.func))
-
-        except Exception as e:
-            print(str(e))
+    def get_reponse(self, request):
+        return SUC, CODE_MSG[SUC], request.func
 
 @pytest.yield_fixture()
 def rpcservice(request):
@@ -118,5 +109,12 @@ def rpcservice(request):
     yield client
     client.loop_stop()
     print("rpcservice stop")
+
+
+# @pytest.yield_fixture()
+# class LocalRPCProxy(RPCProxy):
+    # def __init__(self):
+        # publisher = MQTTRPC("")
+        # super(LocalRPCProxy, self).__init__(None,)
 
 

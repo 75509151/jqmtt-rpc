@@ -21,6 +21,7 @@ class TestRPCService:
     def test_handle_request_msg(self, rpcservice, mqttrpc):
         topic = mqttrpc.REQUEST_TOPIC_TMP.format(version=mqttrpc.VERSION,
                                                service=rpcservice.service_name,
+                                                device_id=get_random_id(),
                                                method="test",
                                                pid=get_random_id()
                                                )

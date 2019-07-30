@@ -1,7 +1,6 @@
-import eventlet
-eventlet.monkey_patch()
 import functools
 
+__all__ = ["RPCProxy"]
 
 class MethodProxy():
     def __init__(self, publisher,service_name):
@@ -19,4 +18,8 @@ class RPCProxy(object):
 
     def __getattr__(self, name):
         return MethodProxy(self.publisher, name)
+
+    # def __entry__(self):
+        # self.publisher.connect()
+
 

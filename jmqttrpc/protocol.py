@@ -1,5 +1,8 @@
 import json
 
+class RPCParseError(Exception):
+    def __init__(self, err):
+        Exception.__init__(self, err)
 
 class RPCProtocol():
 
@@ -36,10 +39,13 @@ class RPCRequest():
 
     @classmethod
     def parse(cls, msg):
-        _, _, _, version, service, device_id, func, pid = msg.topic.split("/")
-        payload = json.loads(msg.payload)
-        return RPCRequest(payload["func"], payload["params"],
-                          pid, msg.topic)
+        try:
+            _, _, _, version, service, device_id, func, pid = msg.topic.split("/")
+            payload = json.loads(msg.payload)
+            return RPCRequest(payload["func"], payload["params"],
+                            pid, msg.topic)
+        except Exception as e:
+            raise RPCParseError(str(e))
 
     # def serialize(self):
         # return json.dumps({"func": self.func,
@@ -58,15 +64,18 @@ class RPCReply():
 
     @classmethod
     def parse(cls, msg):
-        _, _, _, version, service, device_id, func, pid, _ = msg.topic.split("/")
-        payload = json.loads(msg.payload)
-        return RPCReply(
-                        payload["code"],
-                        payload.get("msg",""),
-                        payload.get("data", ""),
-                        msg.topic,
-                        pid
-                        )
+        try:
+            _, _, _, version, service, device_id, func, pid, _ = msg.topic.split("/")
+            payload = json.loads(msg.payload)
+            return RPCReply(
+                            payload["code"],
+                            payload.get("msg",""),
+                            payload.get("data", ""),
+                            msg.topic,
+                            pid
+                            )
+        except Exception as e:
+            raise RPCParseError(str(e))
 
     # def serialize(self):
         # return json.dumps({"code": self.code,

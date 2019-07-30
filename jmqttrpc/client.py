@@ -1,4 +1,6 @@
 
+import eventlet
+
 import uuid
 import threading
 import traceback
@@ -10,6 +12,7 @@ import paho.mqtt.client as mqtt
 from jmqttrpc.protocol import RPCProtocol
 from jmqttrpc.mixins import EventGetMixin, SubscribeMixin
 from jmqttrpc.erros import StateError
+from jmqttrpc.constants import DEFAUT_MAX_WOKERS
 
 _log = getLogger(__name__)
 
@@ -80,10 +83,14 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
     REPLY_TOPIC_TMP = "/rpc/request/{version}/{service}/{device_id}/{method}/{pid}/reply"
     REPLY_TOPIC_MODEL = REQUEST_TOPIC_MODEL + "/reply"
 
-    def __init__(self, client_id, clean_session=True, userdata=None, protocol=mqtt.MQTTv311):
+    def __init__(self, client_id, clean_session=True, userdata=None, protocol=mqtt.MQTTv311,
+                 max_workers=DEFAUT_MAX_WOKERS):
         super(BaseMQTTRPC, self).__init__(client_id, clean_session, userdata, protocol)
         self._reply_events = {}
         self.subscribes = set()
+
+        self.max_workers = max_workers
+        self.pool = eventlet.GreenPool(size=self.max_workers)
 
     def teardwon(self):
         for t in self.subscribes:
@@ -109,22 +116,25 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
         raise NotImplementedError
 
     def on_mqtt_msg(self, client, userdata, msg):
-        topic = msg.topic
-        _log.info("msg topic: %s, payload:%s" % (topic, msg.payload))
-        try:
+        def _deal_msg():
+            topic = msg.topic
+            _log.info("msg topic: %s, payload:%s" % (topic, msg.payload))
+            try:
 
-            if mqtt.topic_matches_sub(self.REPLY_TOPIC_MODEL, topic):
-                self.handle_reply_msg(msg)
-            elif mqtt.topic_matches_sub(self.REQUEST_TOPIC_MODEL,topic):
-                self.handle_request_msg(msg)
-            else:
-                _log.warning("handle_unkwon_msg")
-                print("unkown msg")
-                self.handle_unkwon_msg(msg)
-        except Exception as e:
-            _log.error("on_mqtt_msg error: %s" % str(traceback.format_exc()))
-            print("on_mqtt_msg error: %s" % str(traceback.format_exc()))
-            raise e
+                if mqtt.topic_matches_sub(self.REPLY_TOPIC_MODEL, topic):
+                    self.handle_reply_msg(msg)
+                elif mqtt.topic_matches_sub(self.REQUEST_TOPIC_MODEL,topic):
+                    self.handle_request_msg(msg)
+                else:
+                    _log.warning("handle_unkwon_msg")
+                    print("unkown msg")
+                    self.handle_unkwon_msg(msg)
+            except Exception as e:
+                _log.error("on_mqtt_msg error: %s" % str(traceback.format_exc()))
+                print("on_mqtt_msg error: %s" % str(traceback.format_exc()))
+                raise e
+
+        self.pool.spawn_n(_deal_msg)
 
     def handle_unkwon_msg(self, msg):
         pass
