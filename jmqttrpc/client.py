@@ -17,6 +17,7 @@ _log = getLogger(__name__)
 class MQTTClient(mqtt.Client, SubscribeMixin):
 
     def __init__(self, client_id, clean_session=True, userdata=None, protocol=mqtt.MQTTv311):
+        self.device_id = client_id
         super(MQTTClient, self).__init__(client_id, clean_session, userdata, protocol)
         self._stop = threading.Event()
         self.setup()
@@ -74,9 +75,9 @@ class MQTTClient(mqtt.Client, SubscribeMixin):
 
 class BaseMQTTRPC(MQTTClient, SubscribeMixin):
     VERSION = 1.0
-    REQUEST_TOPIC_TMP = "/rpc/request/{version}/{service}/{method}/{pid}"
-    REQUEST_TOPIC_MODEL = "/rpc/request/+/+/+/+"
-    REPLY_TOPIC_TMP = "/rpc/request/{version}/{service}/{method}/{pid}/reply"
+    REQUEST_TOPIC_TMP = "/rpc/request/{version}/{service}/{device_id}/{method}/{pid}"
+    REQUEST_TOPIC_MODEL = "/rpc/request/+/+/+/+/+"
+    REPLY_TOPIC_TMP = "/rpc/request/{version}/{service}/{device_id}/{method}/{pid}/reply"
     REPLY_TOPIC_MODEL = REQUEST_TOPIC_MODEL + "/reply"
 
     def __init__(self, client_id, clean_session=True, userdata=None, protocol=mqtt.MQTTv311):
@@ -148,23 +149,31 @@ class MQTTRPC(BaseMQTTRPC, EventGetMixin):
     def subscribe_rpc_topics(self):
 
         topic = self.REPLY_TOPIC_TMP.format(version=self.VERSION,
-                                                   service=self._client_id,
+                                                   service="+",
+                                                device_id=self.device_id,
                                                    method="+",
                                                    topic="+",
                                                    pid="+")
         self.subscribe(topic)
         _log.info("subs reply:%s" % topic)
+        print("subs reply:%s" % topic)
 
 
     def handle_reply_msg(self, msg):
-        print("reply msg")
-        _, _, _,version,service,method,pid, _ = msg.topic.split("/")
+        try:
+            reply  = self.protocol.parse_reply(msg)
+            print("pid:%s" % reply.pid)
 
-        reply_event = self._reply_events.pop(pid)
-        if reply_event:
-            reply_event.send(msg.payload)
-        else:
-            _log.debug("expired msg? pid:%s, payload: %s" % (pid, msg.payload))
+            try:
+                reply_event = self._reply_events.pop(reply.pid)
+            except KeyError:
+                _log.warning("expired msg? topic: %s, payload: %s" % (msg.topic,
+                                                                      msg.payload))
+            else:
+                reply_event.send(reply)
+        except Exception as e:
+            _log.error(str(e))
+            raise e
 
 
 
@@ -173,11 +182,14 @@ class MQTTRPC(BaseMQTTRPC, EventGetMixin):
         pid = self._get_pid()
         topic = self.REQUEST_TOPIC_TMP.format(version=self.VERSION,
                                               service=service,
+                                              device_id=self.device_id,
                                               method=method,
                                               pid=pid)
         reply_event = self.get_reply_event(pid)
         payload = self.protocol.create_request(method, dict_params)
         ret, mid = self.publish(topic, payload)
-        # # TODO: to deal with error and empty
-        # reply_body = reply_event.wait(timeout)
-        # return reply_body
+        # TODO: to deal with error and empty
+        reply = reply_event.wait(timeout)
+        if not reply:
+           self._reply_events.pop(pid)
+        return reply

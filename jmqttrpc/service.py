@@ -29,6 +29,7 @@ class BaseRPCService(BaseMQTTRPC):
     def subscribe_rpc_topics(self):
         topic = self.REQUEST_TOPIC_TMP.format(version=self.VERSION,
                                                 service=self.service_name,
+                                                device_id="+",
                                                 method="+",
                                                     pid="+")
         self.subscribe(topic)
@@ -44,15 +45,13 @@ class RPCService(BaseRPCService):
     def reply(self, request_topic, msg):
 
         reply_topic = request_topic+"/reply"
-        print("reply: %s" % reply_topic)
+        # print("reply: %s" % reply_topic)
         return self.publish(reply_topic, msg)
 
     def handle_request_msg(self, msg):
         try:
-            topic = msg.topic
-            _, _,_,version,service,method,pid = topic.split("/")
-            _log.info("reuest: %s" % msg.payload)
-            self.reply(topic, json.dumps({"code":0,
+            request = self.protocol.parse_requset(msg)
+            self.reply(request.topic, json.dumps({"code":0,
                             "msg":"ok"}))
         except Exception as e:
             _log.error("handle_request err: %s" % str(e))

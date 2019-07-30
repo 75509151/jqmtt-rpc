@@ -53,6 +53,7 @@ class TestBaseMQTTClient:
     def test_handle_reply_msg(self, basemqttrpc, mqttrpc):
         topic = mqttrpc.REPLY_TOPIC_TMP.format(version=basemqttrpc.VERSION,
                                                service="ll",
+                                               device_id=basemqttrpc.device_id,
                                                method="test",
                                                pid=get_random_id()
                                                )
@@ -68,6 +69,8 @@ class TestBaseMQTTClient:
     def test_handle_request_msg(self, basemqttrpc, mqttrpc):
         topic = mqttrpc.REQUEST_TOPIC_TMP.format(version=basemqttrpc.VERSION,
                                                service="hhah",
+
+                                               device_id=basemqttrpc.device_id,
                                                method="test",
                                                pid=get_random_id()
                                                )
@@ -87,7 +90,8 @@ class TestMQTTRPC:
         time.sleep(1)
 
         topic = mqttrpc.REPLY_TOPIC_TMP.format(version=basemqttrpc.VERSION,
-                                               service=mqttrpc._client_id,
+                                               service=mqttrpc.device_id,
+                                               device_id=mqttrpc.device_id,
                                                method="test",
                                                pid=get_random_id()
                                                )
@@ -100,7 +104,8 @@ class TestMQTTRPC:
     def test_handle_reply_msg(self, mqttrpc, basemqttrpc):
         time.sleep(1)
         topic = mqttrpc.REPLY_TOPIC_TMP.format(version=basemqttrpc.VERSION,
-                                               service=mqttrpc._client_id,
+                                               service=mqttrpc.device_id,
+                                               device_id=mqttrpc.device_id,
                                                method="test",
                                                pid=get_random_id()
                                                )
@@ -111,15 +116,17 @@ class TestMQTTRPC:
 
 
 
-    @pytest.mark.parametrize("mqttrpc", [["handle_reply_msg", ]], indirect=True)
     def test_call(self, mqttrpc, rpcservice):
-        time.sleep(1)
+        time.sleep(2)
         ret = mqttrpc.call(rpcservice.service_name,"test",{"l":1,
-                                                           "p":2})
-        print(ret)
+                                                           "p":2},
+                           timeout=5)
+        assert ret.code == 0
+        assert ret.msg == "ok"
+        assert ret.data == "test"
 
-        time.sleep(3)
-        assert mqttrpc.handle_reply_msg.call_count == 1
+
+
 
 
 
