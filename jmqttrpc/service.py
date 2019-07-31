@@ -1,4 +1,3 @@
-
 import eventlet
 eventlet.monkey_patch()
 from logging import getLogger
@@ -44,7 +43,7 @@ class RPCService(BaseRPCService):
     def reply(self, request_topic, msg):
 
         reply_topic = request_topic + "/reply"
-        # print("reply: %s" % reply_topic)
+        print("reply: %s" % reply_topic)
         return self.publish(reply_topic, msg)
 
     def handle_request_msg(self, msg):
@@ -52,12 +51,16 @@ class RPCService(BaseRPCService):
         try:
             request = RPCProtocol.parse_requset(msg)
             code, msg, data =self.get_reponse(request)
-            self.reply(request.topic,
+            ret = self.reply(request.topic,
                         RPCProtocol.create_reply(code, msg, data))
+            print("reply: %s" % ret)
         except RPCParseError as e:
+            print(str(e))
+            _log.error("parse err: %s" % str(e))
             self.reply(cos.PARSE_ERR, cos.CODE_MSG[cos.PARSE_ERR])
 
         except Exception as e:
+            print(str(e))
             _log.error("handle_request err: %s" % str(e))
 
     def get_reponse(self, request):

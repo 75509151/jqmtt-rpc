@@ -1,5 +1,5 @@
-
 import eventlet
+eventlet.monkey_patch()
 
 import uuid
 import threading
@@ -116,25 +116,32 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
         raise NotImplementedError
 
     def on_mqtt_msg(self, client, userdata, msg):
-        def _deal_msg():
-            topic = msg.topic
-            _log.info("msg topic: %s, payload:%s" % (topic, msg.payload))
-            try:
+        try:
+            def _deal_msg():
+                topic = msg.topic
+                _log.info("msg topic: %s, payload:%s" % (topic, msg.payload))
+                try:
 
-                if mqtt.topic_matches_sub(self.REPLY_TOPIC_MODEL, topic):
-                    self.handle_reply_msg(msg)
-                elif mqtt.topic_matches_sub(self.REQUEST_TOPIC_MODEL,topic):
-                    self.handle_request_msg(msg)
-                else:
-                    _log.warning("handle_unkwon_msg")
-                    print("unkown msg")
-                    self.handle_unkwon_msg(msg)
-            except Exception as e:
-                _log.error("on_mqtt_msg error: %s" % str(traceback.format_exc()))
-                print("on_mqtt_msg error: %s" % str(traceback.format_exc()))
-                raise e
+                    if mqtt.topic_matches_sub(self.REPLY_TOPIC_MODEL, topic):
+                        self.handle_reply_msg(msg)
+                    elif mqtt.topic_matches_sub(self.REQUEST_TOPIC_MODEL,topic):
+                        self.handle_request_msg(msg)
+                    else:
+                        _log.warning("handle_unkwon_msg")
+                        self.handle_unkwon_msg(msg)
+                except Exception as e:
+                    _log.error("on_mqtt_msg error: %s" % str(traceback.format_exc()))
+                    raise e
 
-        self.pool.spawn_n(_deal_msg)
+            eventlet.spawn(_deal_msg)
+        except Exception as e:
+            print(str(e))
+
+        # self.pool.spawn(_deal_msg)
+        # self.pool.spawn_n(_deal_msg)
+        # self._deal_msg(msg)
+
+
 
     def handle_unkwon_msg(self, msg):
         pass
@@ -164,9 +171,9 @@ class MQTTRPC(BaseMQTTRPC, EventGetMixin):
                                                    method="+",
                                                    topic="+",
                                                    pid="+")
-        self.subscribe(topic)
+        ret = self.subscribe(topic)
         _log.info("subs reply:%s" % topic)
-        print("subs reply:%s" % topic)
+        print("subs: %s %s" % (ret,topic))
 
 
     def handle_reply_msg(self, msg):
