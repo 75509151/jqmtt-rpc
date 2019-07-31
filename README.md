@@ -5,8 +5,8 @@
 # 收款码
 ## ********支付宝****
 
-![收款码](data/img/alipay.png)
+![收款码](https://github.com/75509151/jqmtt-rpc/blob/master/data/img/alipay.png)
 
 ## 微信
 
-![收款码](data/img/wechat.png)
+![收款码](https://github.com/75509151/jqmtt-rpc/blob/master/data/img/wechat.png)
