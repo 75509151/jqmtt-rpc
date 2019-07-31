@@ -4,7 +4,7 @@
 
 # 收款码
 
-## ********支付宝****
+## 支付宝
 
 ![收款码](https://github.com/75509151/jqmtt-rpc/blob/master/data/img/alipay.png)
 
