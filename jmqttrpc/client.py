@@ -1,6 +1,6 @@
-import eventlet
-eventlet.monkey_patch()
-
+# import eventlet
+# eventlet.monkey_patch()
+from multiprocessing.pool import ThreadPool as Pool
 import uuid
 import threading
 import traceback
@@ -10,8 +10,8 @@ from logging import getLogger
 import paho.mqtt.client as mqtt
 
 from jmqttrpc.protocol import RPCProtocol
-from jmqttrpc.mixins import EventGetMixin, SubscribeMixin
-from jmqttrpc.erros import StateError
+from jmqttrpc.mixins import EventGetMixin, SubscribeMixin, EventMixin
+from jmqttrpc.erros import JStateError
 from jmqttrpc.constants import DEFAUT_MAX_WOKERS
 
 _log = getLogger(__name__)
@@ -55,12 +55,12 @@ class MQTTClient(mqtt.Client, SubscribeMixin):
 
     def publish(self, topic, payload=None, qos=1, retain=False, check_st=False):
         if check_st and self._state != mqtt.mqtt_cs_connected:
-            raise StateError("{ktate} not in CONNECTED state".format(state=self._state))
+            raise JStateError("{ktate} not in CONNECTED state".format(state=self._state))
         return super(MQTTClient, self).publish(topic, payload, qos, retain)
 
     def subscribe(self, topic, qos=1, check_st=False):
         if check_st and self._state != mqtt.mqtt_cs_connected:
-            raise StateError("{ktate} not in CONNECTED state".format(state=self._state))
+            raise JStateError("{ktate} not in CONNECTED state".format(state=self._state))
         ret, mid = super(MQTTClient, self).subscribe(topic, qos)
         if ret == 0:
             # TODO: do in ack?
@@ -69,7 +69,7 @@ class MQTTClient(mqtt.Client, SubscribeMixin):
 
     def unsubscribe(self, topic):
         if self._state != mqtt.mqtt_cs_connected:
-            raise StateError("{state} not in CONNECTED state".format(state=self._state))
+            raise JStateError("{state} not in CONNECTED state".format(state=self._state))
         ret, mid = super(MQTTClient, self).unsubscribe(topic)
         if ret == 0:
             # TODO: do in ack?
@@ -91,7 +91,7 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
         self.subscribes = set()
 
         self.max_workers = max_workers
-        self.pool = eventlet.GreenPool(size=self.max_workers)
+        self.pool = Pool(self.max_workers)
 
     def teardwon(self):
         for t in self.subscribes:
@@ -134,7 +134,8 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
                     _log.error("on_mqtt_msg error: %s" % str(traceback.format_exc()))
                     raise e
 
-            self.pool.spawn(_deal_msg)
+            # self.pool.spawn(_deal_msg)
+            self.pool.apply_async(_deal_msg)
         except Exception as e:
             print(str(e))
 
@@ -151,7 +152,7 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
         pass
 
 
-class MQTTRPC(BaseMQTTRPC, EventGetMixin):
+class MQTTRPC(BaseMQTTRPC, EventMixin):
     """
     client
     """

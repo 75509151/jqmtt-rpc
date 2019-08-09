@@ -35,16 +35,16 @@ def evpool_run(pool_count=100):
     import eventlet
     results = []
     pool = eventlet.GreenPool(pool_count)
-    for i in range(200):
+    for i in range(20000):
         ret = pool.spawn(call_service, i)
         results.append(ret)
     pool.waitall()
 
 
-def pool_run(pool_count=5000):
+def pool_run(client_count=300):
     results = []
-    pool = Pool(1000)
-    for i in range(pool_count):
+    pool = Pool(100)
+    for i in range(client_count):
         pool.apply_async(call_service)
     pool.close()
     pool.join()
@@ -56,5 +56,5 @@ if __name__ == "__main__":
     # ret = call_service()
     # print(ret)
     # pool_run()
-    evpool_run()
+    pool_run(10000)
 
