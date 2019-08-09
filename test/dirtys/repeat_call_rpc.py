@@ -29,7 +29,7 @@ def call_service(ind=0, service_name=BATCH_TEST_SERVICE_NAME):
             raise Exception("timout")
         print(ret)
 
-        client.loop_stop()
+        client.stop()
         return ret
     except Exception as e:
         print(str(e))

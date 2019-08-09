@@ -31,8 +31,8 @@ class MQTTClient(mqtt.Client, SubscribeMixin):
 
     def stop(self):
         self._stop.set()
-        self.disconnect()
         self.loop_stop()
+        self.disconnect()
 
     def setup(self):
         self.on_message = self.on_mqtt_msg

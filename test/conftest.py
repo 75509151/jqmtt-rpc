@@ -47,7 +47,7 @@ def basemqttrpc(request):
 
     yield client
 
-    client.loop_stop()
+    client.stop()
     print("stop")
 
 @pytest.yield_fixture(scope="class")
@@ -77,7 +77,7 @@ def mqttrpc(request):
     client.loop_start()
     time.sleep(1)
     yield client
-    client.loop_stop()
+    client.stop()
     print("rpc stop")
 
 
@@ -107,7 +107,7 @@ def rpcservice(request):
     client.loop_start()
     time.sleep(1)
     yield client
-    client.loop_stop()
+    client.stop()
     print("rpcservice stop")
 
 

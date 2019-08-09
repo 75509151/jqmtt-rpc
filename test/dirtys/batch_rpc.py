@@ -25,7 +25,7 @@ def call_service(ind=0, service_name=BATCH_TEST_SERVICE_NAME):
             raise Exception("timout")
         print(ret)
 
-        client.loop_stop()
+        client.stop()
         return ret
     except Exception as e:
         print(str(e))
@@ -43,7 +43,7 @@ def evpool_run(pool_count=100):
 
 def pool_run(client_count=300):
     results = []
-    pool = Pool(100)
+    pool = Pool(20)
     for i in range(client_count):
         pool.apply_async(call_service)
     pool.close()
@@ -56,5 +56,5 @@ if __name__ == "__main__":
     # ret = call_service()
     # print(ret)
     # pool_run()
-    pool_run(10000)
+    pool_run(100000)
 
