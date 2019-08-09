@@ -52,14 +52,15 @@ class MQTTClient(mqtt.Client, SubscribeMixin):
     def on_mqtt_connect(self, client, userdata, flags, rc):
         pass
 
-    def publish(self, topic, payload=None, qos=1, retain=False):
-        if self._state != mqtt.mqtt_cs_connected:
-            raise StateError("{state} not in CONNECTED state".format(state=self._state))
+
+    def publish(self, topic, payload=None, qos=1, retain=False, check_st=False):
+        if check_st and self._state != mqtt.mqtt_cs_connected:
+            raise StateError("{ktate} not in CONNECTED state".format(state=self._state))
         return super(MQTTClient, self).publish(topic, payload, qos, retain)
 
-    def subscribe(self, topic, qos=1):
-        if self._state != mqtt.mqtt_cs_connected:
-            raise StateError("{state} not in CONNECTED state".format(state=self._state))
+    def subscribe(self, topic, qos=1, check_st=False):
+        if check_st and self._state != mqtt.mqtt_cs_connected:
+            raise StateError("{ktate} not in CONNECTED state".format(state=self._state))
         ret, mid = super(MQTTClient, self).subscribe(topic, qos)
         if ret == 0:
             # TODO: do in ack?
@@ -133,13 +134,10 @@ class BaseMQTTRPC(MQTTClient, SubscribeMixin):
                     _log.error("on_mqtt_msg error: %s" % str(traceback.format_exc()))
                     raise e
 
-            eventlet.spawn(_deal_msg)
+            self.pool.spawn(_deal_msg)
         except Exception as e:
             print(str(e))
 
-        # self.pool.spawn(_deal_msg)
-        # self.pool.spawn_n(_deal_msg)
-        # self._deal_msg(msg)
 
 
 
@@ -179,7 +177,6 @@ class MQTTRPC(BaseMQTTRPC, EventGetMixin):
     def handle_reply_msg(self, msg):
         try:
             reply  = self.protocol.parse_reply(msg)
-            print("pid:%s" % reply.pid)
 
             try:
                 reply_event = self._reply_events.pop(reply.pid)
@@ -194,7 +191,7 @@ class MQTTRPC(BaseMQTTRPC, EventGetMixin):
 
 
 
-    def call(self, service, method, dict_params, timeout=60):
+    def call(self, service, method, dict_params, timeout=60, once=False):
         assert type(dict_params) == dict
         pid = self._get_pid()
         topic = self.REQUEST_TOPIC_TMP.format(version=self.VERSION,
@@ -204,7 +201,8 @@ class MQTTRPC(BaseMQTTRPC, EventGetMixin):
                                               pid=pid)
         reply_event = self.get_reply_event(pid)
         payload = self.protocol.create_request(method, dict_params)
-        ret, mid = self.publish(topic, payload)
+        qos= 0 if once else 1
+        ret, mid = self.publish(topic, payload, qos=qos)
         # TODO: to deal with error and empty
         reply = reply_event.wait(timeout)
         if not reply:

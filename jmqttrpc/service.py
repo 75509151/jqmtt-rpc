@@ -1,5 +1,3 @@
-import eventlet
-eventlet.monkey_patch()
 from logging import getLogger
 import json
 
@@ -43,7 +41,6 @@ class RPCService(BaseRPCService):
     def reply(self, request_topic, msg):
 
         reply_topic = request_topic + "/reply"
-        print("reply: %s" % reply_topic)
         return self.publish(reply_topic, msg)
 
     def handle_request_msg(self, msg):

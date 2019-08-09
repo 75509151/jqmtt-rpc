@@ -13,14 +13,18 @@ def get_random_id():
 
 def call_service(ind=0, service_name=BATCH_TEST_SERVICE_NAME):
     try:
-        client_id = get_random_id()
-        client = MQTTRPC(client_id, clean_session=True)
+        client_id = "retain_test"
+        client = MQTTRPC(client_id, clean_session=False)
 
         client.connect(MQTT_BORKER_URL, MQTT_BORKER_PORT)
         client.loop_start()
 
         ret = client.call(service_name,"test",{"l":1,"p":2},
-                            timeout=100)
+                            timeout=1, once=False)
+        ret = client.call(service_name,"test",{"l":2,"p":2},
+                            timeout=1, once=True)
+
+
         if not ret:
             raise Exception("timout")
         print(ret)
@@ -31,30 +35,11 @@ def call_service(ind=0, service_name=BATCH_TEST_SERVICE_NAME):
         print(str(e))
 
 
-def evpool_run(pool_count=100):
-    import eventlet
-    results = []
-    pool = eventlet.GreenPool(pool_count)
-    for i in range(200):
-        ret = pool.spawn(call_service, i)
-        results.append(ret)
-    pool.waitall()
-
-
-def pool_run(pool_count=5000):
-    results = []
-    pool = Pool(1000)
-    for i in range(pool_count):
-        pool.apply_async(call_service)
-    pool.close()
-    pool.join()
 
 
 
 
 if __name__ == "__main__":
-    # ret = call_service()
-    # print(ret)
-    # pool_run()
-    evpool_run()
+    call_service()
+    time.sleep(20)
 
