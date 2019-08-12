@@ -17,7 +17,7 @@ class RPCService4Batch(RPCService):
 if __name__ == "__main__":
     config = {"service_name": BATCH_TEST_SERVICE_NAME,
               "client_id": "batch_test",
-              "max_workers": 150,
+              "max_workers": 200,
               "clean_session": False}
     service = RPCService4Batch(config, None)
     service.connect(MQTT_BORKER_URL, MQTT_BORKER_PORT)

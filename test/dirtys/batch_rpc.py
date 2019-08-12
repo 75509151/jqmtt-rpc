@@ -1,6 +1,6 @@
 import time
 import uuid
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool as Pool
 
 
 
@@ -43,7 +43,7 @@ def evpool_run(pool_count=100):
 
 def pool_run(client_count=300):
     results = []
-    pool = Pool(20)
+    pool = Pool(100)
     for i in range(client_count):
         pool.apply_async(call_service)
     pool.close()
@@ -56,5 +56,5 @@ if __name__ == "__main__":
     # ret = call_service()
     # print(ret)
     # pool_run()
-    pool_run(100000)
+    pool_run(10000000)
 
