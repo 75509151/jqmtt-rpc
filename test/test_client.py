@@ -5,29 +5,10 @@ import unittest
 import inspect
 import paho.mqtt.client as mqtt
 
-from jmqttrpc.erros import StateError
+from jmqttrpc.erros import JStateError
 from jmqttrpc.client import MQTTClient, BaseMQTTRPC, MQTTRPC
 from .utils import get_random_id
 
-
-
-class TestMQTTClient:
-
-    def test_subscribe_in_wrong_state(self, unlive_client):
-        with pytest.raises(StateError):
-            topic = "123"
-            unlive_client.subscribe(topic, "", check_st=True)
-
-    def test_unsubscribe_in_wrong_state(self, unlive_client):
-        with pytest.raises(StateError):
-            topic = "123"
-            unlive_client.unsubscribe(topic, check_st=True)
-
-    def test_public_in_wrong_state(self, unlive_client):
-
-        with pytest.raises(StateError):
-            topic = "123"
-            unlive_client.publish(topic, "", check_st=True)
 
 
 class TestBaseMQTTClient:

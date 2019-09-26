@@ -53,14 +53,10 @@ class MQTTClient(mqtt.Client, SubscribeMixin):
         pass
 
 
-    def publish(self, topic, payload=None, qos=1, retain=False, check_st=False):
-        if check_st and self._state != mqtt.mqtt_cs_connected:
-            raise JStateError("{ktate} not in CONNECTED state".format(state=self._state))
+    def publish(self, topic, payload=None, qos=1, retain=False):
         return super(MQTTClient, self).publish(topic, payload, qos, retain)
 
-    def subscribe(self, topic, qos=1, check_st=False):
-        if check_st and self._state != mqtt.mqtt_cs_connected:
-            raise JStateError("{ktate} not in CONNECTED state".format(state=self._state))
+    def subscribe(self, topic, qos=1):
         ret, mid = super(MQTTClient, self).subscribe(topic, qos)
         if ret == 0:
             # TODO: do in ack?
@@ -68,8 +64,6 @@ class MQTTClient(mqtt.Client, SubscribeMixin):
         return ret, mid
 
     def unsubscribe(self, topic):
-        if self._state != mqtt.mqtt_cs_connected:
-            raise JStateError("{state} not in CONNECTED state".format(state=self._state))
         ret, mid = super(MQTTClient, self).unsubscribe(topic)
         if ret == 0:
             # TODO: do in ack?
